@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 )
 
@@ -20,5 +21,10 @@ func main() {
 
 	website := args[1]
 
-	getHTML(website)
+	result, err := getHTML(website)
+	if err != nil {
+		log.Println(err)
+	}
+
+	fmt.Println(result)
 }
