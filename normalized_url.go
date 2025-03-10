@@ -27,17 +27,28 @@ func getURLsFromHTML(htmlBody, rawBaseURL string) ([]string, error) {
 		return nil, err
 	}
 
+	base, err := url.Parse(rawBaseURL)
+	if err != nil {
+		return nil, err
+	}
+
 	var elementList []string
 
 	for n := range doc.Descendants() {
 		if n.Type == html.ElementNode && n.DataAtom == atom.A {
 			for _, a := range n.Attr {
 				if a.Key == "href" {
-					if !strings.Contains(a.Val, "https") {
-						a.Val = rawBaseURL + a.Val
+					urlVal, err := url.Parse(a.Val)
+					if err != nil {
+						return nil, err
 					}
 
-					elementList = append(elementList, a.Val)
+					if urlVal.IsAbs() {
+						elementList = append(elementList, urlVal.String())
+					} else {
+						resolveURL := base.ResolveReference(urlVal)
+						elementList = append(elementList, resolveURL.String())
+					}
 				}
 			}
 		}
