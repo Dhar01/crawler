@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 )
 
@@ -21,10 +20,17 @@ func main() {
 
 	website := args[1]
 
-	result, err := getHTML(website)
-	if err != nil {
-		log.Println(err)
-	}
+	pages := make(map[string]int)
 
-	fmt.Println(result)
+	// result, err := getHTML(website)
+	// if err != nil {
+	// 	log.Println(err)
+	// }
+
+	crawlPage(website, website, pages)
+
+	fmt.Println("Results:")
+	for url, count := range pages {
+		fmt.Printf("%s: %d\n", url, count)
+	}
 }
