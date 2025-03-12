@@ -21,13 +21,8 @@ func normalizeURL(address string) (string, error) {
 	return strings.ToLower(normStr), nil
 }
 
-func getURLsFromHTML(htmlBody, rawBaseURL string) ([]string, error) {
+func getURLsFromHTML(htmlBody string, rawBaseURL *url.URL) ([]string, error) {
 	doc, err := html.Parse(strings.NewReader(htmlBody))
-	if err != nil {
-		return nil, err
-	}
-
-	base, err := url.Parse(rawBaseURL)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +41,7 @@ func getURLsFromHTML(htmlBody, rawBaseURL string) ([]string, error) {
 					if urlVal.IsAbs() {
 						elementList = append(elementList, urlVal.String())
 					} else {
-						resolveURL := base.ResolveReference(urlVal)
+						resolveURL := rawBaseURL.ResolveReference(urlVal)
 						elementList = append(elementList, resolveURL.String())
 					}
 				}

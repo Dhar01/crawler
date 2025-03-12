@@ -6,21 +6,21 @@ import (
 	"net/url"
 )
 
-func crawlPage(rawBaseURL, rawCurrentURL string, pages map[string]int) {
-	baseURL, err := url.Parse(rawBaseURL)
-	if err != nil {
-		log.Println("Error parsing baseURL:", err)
-		return
-	}
+func (cfg *config) crawlPage(rawCurrentURL string) {
+	cfg.concurrencyControl <- struct{}{}
+	defer func() {
+		<-cfg.concurrencyControl
+		cfg.wg.Done()
+	}()
 
 	currentURL, err := url.Parse(rawCurrentURL)
 	if err != nil {
-		log.Println("Error parsing currentURL:", err)
+		fmt.Printf("Error: crawlpage - couldn't parse URL: %s : %v\n", rawCurrentURL, err)
 		return
 	}
 
 	// only crawl pages on the same domain
-	if baseURL.Host != currentURL.Host {
+	if cfg.baseURL.Hostname() != currentURL.Hostname() {
 		return
 	}
 
@@ -30,28 +30,46 @@ func crawlPage(rawBaseURL, rawCurrentURL string, pages map[string]int) {
 		return
 	}
 
-	if _, ok := pages[normalURL]; ok {
-		pages[normalURL]++
+	// if _, ok := cfg.pages[normalURL]; ok {
+	// 	cfg.pages[normalURL]++
+	// 	return
+	// }
+	// cfg.pages[normalURL] = 1
+
+	isFirst := cfg.addPageVisit(normalURL)
+	if !isFirst {
 		return
 	}
-
-	pages[normalURL] = 1
 
 	fmt.Println("Crawling:", normalURL)
 
 	html, err := getHTML(rawCurrentURL)
 	if err != nil {
-		log.Println("Error fetching URL:", rawCurrentURL)
+		log.Printf("Error: getHTML - fetching URL: %s , %v", rawCurrentURL, err)
 		return
 	}
 
-	urls, err := getURLsFromHTML(html, rawBaseURL)
+	urls, err := getURLsFromHTML(html, cfg.baseURL)
 	if err != nil {
 		log.Println("Error parsing URLs:", err)
 		return
 	}
 
 	for _, url := range urls {
-		crawlPage(rawBaseURL, url, pages)
+		cfg.wg.Add(1)
+		go cfg.crawlPage(url)
 	}
+}
+
+func (cfg *config) addPageVisit(normalizeURL string) (isFirst bool) {
+	cfg.mu.Lock()
+	defer cfg.mu.Unlock()
+
+	if _, visited := cfg.pages[normalizeURL]; visited {
+		cfg.pages[normalizeURL]++
+		return false
+	}
+
+	cfg.pages[normalizeURL] = 1
+	return true
 }

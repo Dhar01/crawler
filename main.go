@@ -20,17 +20,20 @@ func main() {
 
 	website := args[1]
 
-	pages := make(map[string]int)
+	const maxConcurrency = 3
+	cfg, err := configure(website, maxConcurrency)
+	if err != nil {
+		fmt.Printf("Error - configure: %v", err)
+		return
+	}
 
-	// result, err := getHTML(website)
-	// if err != nil {
-	// 	log.Println(err)
-	// }
+	fmt.Println("Starting crawl of:", website)
 
-	crawlPage(website, website, pages)
+	cfg.wg.Add(1)
+	go cfg.crawlPage(website)
+	cfg.wg.Wait()
 
-	fmt.Println("Results:")
-	for url, count := range pages {
+	for url, count := range cfg.pages {
 		fmt.Printf("%s: %d\n", url, count)
 	}
 }
