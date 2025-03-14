@@ -12,9 +12,10 @@ type config struct {
 	mu                 *sync.Mutex     // ensures pages map is thread safe
 	concurrencyControl chan struct{}   // ensures control on the channel
 	wg                 *sync.WaitGroup // ensures the main func waits
+	maxPages           int
 }
 
-func configure(rawBaseURL string, maxConcurrency int) (*config, error) {
+func configure(rawBaseURL string, maxConcurrency, maxPages int) (*config, error) {
 	baseURL, err := url.Parse(rawBaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't parse base URL: %v", err)
@@ -26,5 +27,6 @@ func configure(rawBaseURL string, maxConcurrency int) (*config, error) {
 		mu:                 &sync.Mutex{},
 		concurrencyControl: make(chan struct{}, maxConcurrency),
 		wg:                 &sync.WaitGroup{},
+		maxPages:           maxPages,
 	}, nil
 }
