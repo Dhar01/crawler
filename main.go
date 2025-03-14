@@ -2,16 +2,19 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
+
+	"strconv"
 )
 
 func main() {
 	args := os.Args
 
-	if len(args) < 2 {
+	if len(args) < 4 {
 		fmt.Println("no website provided")
 		os.Exit(1)
-	} else if len(args) > 2 {
+	} else if len(args) > 4 {
 		fmt.Println("too many arguments provided")
 		os.Exit(1)
 	} else {
@@ -19,9 +22,22 @@ func main() {
 	}
 
 	website := args[1]
+	maxConcur := args[2]
+	pages := args[3]
 
-	const maxConcurrency = 3
-	cfg, err := configure(website, maxConcurrency)
+	maxConcurrency, err := strconv.Atoi(maxConcur)
+	if err != nil {
+		log.Println("maxConcurrency isn't integer")
+		os.Exit(1)
+	}
+
+	maxPages, err := strconv.Atoi(pages)
+	if err != nil {
+		log.Println("maxPages isn't integer")
+		os.Exit(1)
+	}
+
+	cfg, err := configure(website, maxConcurrency, maxPages)
 	if err != nil {
 		fmt.Printf("Error - configure: %v", err)
 		return
@@ -33,7 +49,5 @@ func main() {
 	go cfg.crawlPage(website)
 	cfg.wg.Wait()
 
-	for url, count := range cfg.pages {
-		fmt.Printf("%s: %d\n", url, count)
-	}
+	printReport(cfg.pages, website)
 }
