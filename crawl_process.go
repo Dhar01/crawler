@@ -13,9 +13,18 @@ func (cfg *config) crawlPage(rawCurrentURL string) {
 		cfg.wg.Done()
 	}()
 
+	cfg.mu.Lock()
+
+	if len(cfg.pages) >= cfg.maxPages {
+		cfg.mu.Unlock()
+		return
+	}
+
+	cfg.mu.Unlock()
+
 	currentURL, err := url.Parse(rawCurrentURL)
 	if err != nil {
-		fmt.Printf("Error: crawlpage - couldn't parse URL: %s : %v\n", rawCurrentURL, err)
+		log.Printf("error: crawlPage - couldn't parse URL: %s : %v\n", rawCurrentURL, err)
 		return
 	}
 
@@ -29,12 +38,6 @@ func (cfg *config) crawlPage(rawCurrentURL string) {
 		log.Println("Error normalizing URL:", err)
 		return
 	}
-
-	// if _, ok := cfg.pages[normalURL]; ok {
-	// 	cfg.pages[normalURL]++
-	// 	return
-	// }
-	// cfg.pages[normalURL] = 1
 
 	isFirst := cfg.addPageVisit(normalURL)
 	if !isFirst {
